@@ -7,7 +7,9 @@ directline - For your messaging client to post and get message activities to
 conversation - For your bot to post message activities to
 botstate - For your bot to post and get state to (privateConversationData, conversationData and userData)
 
-See [Bot Framework API Reference](https://docs.microsoft.com/en-us/bot-framework/rest-api/bot-framework-rest-connector-api-reference) for API references. NOTE: Not all routes (e.g. attachments) are fully implemented in this package. For now this connector functions as a message broker and state store. 
+See [Bot Framework API Reference](https://docs.microsoft.com/en-us/bot-framework/rest-api/bot-framework-rest-connector-api-reference) for API references. 
+
+NOTE: Not all routes (e.g. attachments) are fully implemented in this package. For now this connector functions as a message broker and state store. Further, this package currently facilitates a single conversation between a user and a bot.
 
 
 ## Installation
@@ -19,6 +21,7 @@ npm install --save offline-directline
 ```
 
 ## Usage
+Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to install and include this package in a node project and run it. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
 
 ### Build a Bot 
 See dev.botframework.com for bot building reference. You don't have to actually register a bot - just use one of the botbuilder SDKs to build a bot web service, which you can deploy locally or into the cloud. 
@@ -58,4 +61,4 @@ Now that you have a bot running and directline endpoint running, run your webcha
 ```
 http://localhost:8000/samples/fullwindow/?domain=http://localhost:3000/directline
 ```
-
+The connector doesn't require a token or secret, so don't worry about these fields. 
