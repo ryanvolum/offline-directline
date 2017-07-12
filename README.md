@@ -66,3 +66,6 @@ Now that you have a bot running and directline endpoint running, run your webcha
 http://localhost:8000/samples/fullwindow/?domain=http://localhost:3000/directline
 ```
 Offline directline doesn't require a token or secret, so don't worry about these fields. 
+
+
+Once everything is running, you should see messages sent in through webchat passed through to your bot and vice versa. Your bot should also be able to set privateConversationData, conversationData and userData as offered by the botbuilder SDKs.
