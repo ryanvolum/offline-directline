@@ -2,10 +2,9 @@ offline-directline
 (https://www.npmjs.com/package/offline-directline)
 ================
 Unofficial package to deploy your own offline bot framework direct line connector, allowing developers to connect a bot web service to a client without needing to reach out to an external service. This package exposes three endpoints: 
-
-directline - For your messaging client to post and get message activities to
-conversation - For your bot to post message activities to
-botstate - For your bot to post and get state to (privateConversationData, conversationData and userData)
+1. directline - For your messaging client to post and get message activities to
+2. conversation - For your bot to post message activities to
+3. botstate - For your bot to post and get state to (privateConversationData, conversationData and userData)
 
 See [Bot Framework API Reference](https://docs.microsoft.com/en-us/bot-framework/rest-api/bot-framework-rest-connector-api-reference) for API references. 
 
@@ -56,9 +55,9 @@ BotChat.App({
 ```
 This package is not using websockets, so this is our way of telling webchat to use polling instead. 
 
-Now that you have a bot running and directline endpoint running, run your webchat client, passing in your directline endpoint (including '/directline/'):
+Now that you have a bot running and directline endpoint running, run your webchat client, passing in your directline endpoint (including '/directline/') as in:
 
 ```
 http://localhost:8000/samples/fullwindow/?domain=http://localhost:3000/directline
 ```
-The connector doesn't require a token or secret, so don't worry about these fields. 
+Offline directline doesn't require a token or secret, so don't worry about these fields. 
