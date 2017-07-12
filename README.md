@@ -31,9 +31,9 @@ Once you have a bot service built, the only thing you need is your bot messaging
 1. Include express and the offline-directline packages
 2. Create an express server
 3. Call the initializeRoutes function, passing in:
-⋅⋅* your express server
-⋅⋅* the endpoint/port where you want to host the offline connector
-⋅⋅* Your bot messaging endpoint (generally ends in api/messages)
+    * Your express server
+    * The endpoint/port where you want to host the offline connector
+    * Your bot messaging endpoint (generally ends in api/messages)
 
 ```js
 const directline = require("offline-directline");
