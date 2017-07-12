@@ -1,8 +1,8 @@
 {
-  "name": "directlinebrdige",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "offline-directline",
+  "version": "1.0.1",
+  "description": "Unofficial offline version of the Bot Framework Directline connector",
+  "main": "dist/bridge.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
@@ -10,17 +10,16 @@
     "nodewatch": "nodemon index.js",
     "start": "node dist/index.js"
   },
-  "author": "",
+  "types": "dist/bridge.d.ts",
+  "author": "Ryan Volum",
   "license": "ISC",
   "dependencies": {
     "@types/dotenv": "^4.0.0",
     "@types/isomorphic-fetch": "0.0.34",
     "body-parser": "^1.17.2",
-    "dotenv": "^4.0.0",
     "es6-promise": "^4.1.1",
     "express": "^4.15.3",
     "isomorphic-fetch": "^2.2.1",
-    "util": "^0.10.3",
     "uuid": "^3.1.0"
   }
 }

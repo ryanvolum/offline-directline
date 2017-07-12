@@ -1,6 +1,5 @@
 .env
 node_modules
-dist/*
-!dist/.gitkeep
+dist
 npm-debug.log.*
 package-lock.json
