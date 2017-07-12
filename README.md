@@ -22,11 +22,6 @@ npm install --save offline-directline
 ## Usage
 Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to install and include this package in a node project and run it. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
 
-### Build a Bot 
-See dev.botframework.com for bot building reference. You don't have to actually register a bot - just use one of the botbuilder SDKs to build a bot web service, which you can deploy locally or into the cloud. 
-
-Once you have a bot service built, the only thing you need is your bot messaging endpoint.
-
 ### Set up your direct line connector
 1. Include express and the offline-directline packages
 2. Create an express server
@@ -34,6 +29,7 @@ Once you have a bot service built, the only thing you need is your bot messaging
     * Your express server
     * The endpoint/port where you want to host the offline connector
     * Your bot messaging endpoint (generally ends in api/messages)
+4. Run your code!
 
 ```js
 const directline = require("offline-directline");
@@ -42,9 +38,11 @@ const express = require("express");
 const app = express();
 directline.initializeRoutes(app, "http://127.0.0.1:3000", "http://127.0.0.1:3978/api/messages");
 ```
-4. Run your code!
 
+### Build a Bot 
+See dev.botframework.com for bot building reference. You don't have to actually register a bot - just use one of the botbuilder SDKs to build a bot web service, which you can deploy locally or into the cloud. 
 
+Once you have a bot service built, the only thing you need is your bot messaging endpoint.
 
 ### Set up your client
 Though you could create your own client to connect to the directline endpoint that this package creates, I'll demonstrate this connection using the Microsoft Bot Framework WebChat channel. See the [Webchat Github Repo](https://github.com/Microsoft/BotFramework-WebChat) samples to get your client set up. Again, keep in mind that you won't actually need to register a bot or channels. As the samples demonstrate, you will create a BotChat.App which you will pass a directline object into. Add the a field for webSocket and set it to false, as in:
