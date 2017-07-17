@@ -8,7 +8,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "nodewatch": "nodemon index.js",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "directline": "node dist/cmdutil.js"
   },
   "types": "dist/bridge.d.ts",
   "author": "Ryan Volum",

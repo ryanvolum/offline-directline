@@ -192,7 +192,7 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
                 delete botDataStore[key];
             }
         });
-    res.status(200);
+    res.status(200).send();
 }
 
 //CLIENT ENDPOINT HELPERS

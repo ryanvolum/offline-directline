@@ -8,6 +8,7 @@
         "sourceMap": true
     },
     "files": [
-        "src/bridge.ts"
+        "src/bridge.ts",
+        "src/cmdutil.ts"
     ]
 }
