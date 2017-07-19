@@ -1,7 +1,7 @@
 offline-directline
 (https://www.npmjs.com/package/offline-directline)
 ================
-Unofficial package to deploy your own offline bot framework direct line connector, allowing developers to connect a bot web service to a client without needing to reach out to an external service. This package exposes three endpoints: 
+Unofficial package to emulate the bot framework connector offline. This package exposes three endpoints: 
 1. directline - For your messaging client to post and get message activities to
 2. conversation - For your bot to post message activities to
 3. botstate - For your bot to post and get state to (privateConversationData, conversationData and userData)
@@ -23,7 +23,8 @@ npm install --save offline-directline
 Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to install and include this package in a node project and run it. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
 
 ### Set up your direct line connector
-There are two ways you can set up the connector. The easiest way is to npm install the package, and call the directline npms script from the command line with the first argument representing the port you want to host your connector on and the second representing the endpoint where your bot lives:
+
+There are two ways you can set up the connector. The easiest way is to npm install the package, and call the directline npm script from the command line with the first argument representing the port you want to host your connector on and the second representing the endpoint where your bot lives:
 
 ```sh
 npm run directline 3000 localhost://127.0.0.1:3978/api/messages
