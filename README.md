@@ -1,7 +1,7 @@
 offline-directline
 (https://www.npmjs.com/package/offline-directline)
 ================
-Unofficial package to emulate the bot framework connector offline. This package exposes three endpoints: 
+Unofficial package to emulate the bot framework connector locally. This package exposes three endpoints: 
 1. directline - For your messaging client to post and get message activities to
 2. conversation - For your bot to post message activities to
 3. botstate - For your bot to post and get state to (privateConversationData, conversationData and userData)
