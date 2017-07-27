@@ -67,9 +67,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     //Sends message to bot. Assumes message activities. 
     app.post('/directline/conversations/:conversationId/activities', (req, res) => {
-        let text = req.body.text;
+        let incomingActivity = req.body;
         //make copy of activity. Add required fields. 
-        let activity = createMessageActivity(text, serviceUrl);
+        let activity = createMessageActivity(incomingActivity, serviceUrl);
         fetch(botUrl, {
             method: "POST",
             body: JSON.stringify(activity),
@@ -196,19 +196,8 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
 }
 
 //CLIENT ENDPOINT HELPERS
-const createMessageActivity = (text: string, serviceUrl: string): IMessageActivity => {
-    let activity: IMessageActivity = {};
-    activity.type = "message";
-    activity.text = text;
-    activity.from = { 'id': '12345', 'name': 'User' };
-    activity.timestamp = (new Date).toISOString();
-    activity.localTimestamp = (new Date).toISOString();
-    activity.id = uuidv4();
-    activity.channelId = "emulator";
-    activity.conversation = { 'id': conversationId };
-    activity.serviceUrl = serviceUrl;
-
-    return activity;
+const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string): IMessageActivity => {
+    return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': conversationId }, id: uuidv4() };
 }
 
 const getActivitiesSince = (watermark: number): IActivity[] => {
