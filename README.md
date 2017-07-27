@@ -23,22 +23,18 @@ npm install --save offline-directline
 Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to install and include this package in a node project and run it. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
 
 ### Set up your direct line connector
+In order to run an instance of offline directline, you'll need to create a new project, include this module, and run initializeRoutes:
 
-There are two ways you can set up the connector. The easiest way is to npm install the package, and call the directline npm script from the command line with the first argument representing the port you want to host your connector on and the second representing the endpoint where your bot lives:
-
-```sh
-npm run directline 3000 localhost://127.0.0.1:3978/api/messages
-```
-
-Alternatively, you can start the connector from code, giving you full access to the server:
-
-1. Include express and the offline-directline packages
-2. Create an express server
-3. Call the initializeRoutes function, passing in:
+1. Create a new node project 
+    * npm init 
+    * create a javascript file (e.g. app.js, index.js)
+2. Include express and the offline-directline packages
+3. Create an express server
+4. Call the initializeRoutes function, passing in:
     * Your express server
     * The endpoint/port where you want to host the offline connector
     * Your bot messaging endpoint (generally ends in api/messages)
-4. Run your code!
+4. Run your code (node app.js in the command line)!
 
 ```js
 const directline = require("offline-directline");
