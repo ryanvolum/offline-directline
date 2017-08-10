@@ -22,6 +22,8 @@
     "es6-promise": "^4.1.1",
     "express": "^4.15.3",
     "isomorphic-fetch": "^2.2.1",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "@types/http-status-codes": "1.0.29",
+    "request": "^2.81.0"
   }
 }

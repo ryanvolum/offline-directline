@@ -4,3 +4,4 @@ dist
 npm-debug.log.*
 package-lock.json
 launch.json
+/.vs
