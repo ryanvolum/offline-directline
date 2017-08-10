@@ -1,15 +1,29 @@
-import * as express from 'express';
+﻿import * as express from 'express';
 import bodyParser = require('body-parser');
 import 'isomorphic-fetch';
 import * as uuidv4 from 'uuid/v4';
-import { IActivity, IAttachment, IBotData, IChannelAccount, IConversation, IConversationAccount, IEntity, IMessageActivity, IUser } from './types';
+import * as HttpStatus from "http-status-codes";
+var http = require('http');
+
+import { IUser } from './types/userTypes';
+import { IActivity, IConversationUpdateActivity, IMessageActivity, ITypingActivity, IInvokeActivity } from './types/activityTypes';
+import { IAttachment } from './types/attachmentTypes';
+import { IConversationAccount, IChannelAccount } from './types/accountTypes';
+import { IEntity } from './types/entityTypes';
+import { IConversation } from './types/conversationTypes';
+import { IBot, IBotData } from './types/botTypes';
+import { Conversation } from './conversationManager';
 
 const expires_in = 1800;
 let conversationId: string;
 let botDataStore: { [key: string]: IBotData } = {};
 let history: IActivity[];
 
-export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string) => {
+let uniqueId: string = uuidv4();
+let userName: string = `user-${uniqueId}`;
+let user: IUser = { name: userName, id: uniqueId };
+
+export const initializeRoutes = (app: express.Server, serviceUrl: string, bot: IBot) => {
     app.use(bodyParser.json()); // for parsing application/json
     app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
     app.use((req, res, next) => {
@@ -18,6 +32,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
         next();
     });
+
     // CLIENT ENDPOINT
     app.options('/directline', (req, res) => {
         res.status(200).end();
@@ -34,12 +49,16 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         });
     })
 
-    app.listen(3000, () => {
-        console.log('listening');
+    const port = app.get("port");
+
+    app.listen(port || 3000, () => {
+        console.log("Listening on port %d", port);
     });
 
     //reconnect API
     app.get('/v3/directline/conversations/:conversationId', (req, res) => { console.warn("/v3/directline/conversations/:conversationId not implemented") })
+    app.get('/directline/tokens/generate', (req, res) => { console.warn("/directline/tokens/generate not implemented") })
+    app.get('/directline/tokens/refresh', (req, res) => { console.warn("/directline/tokens/refresh not implemented") })
 
     //Gets activities from store (local history array for now)
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
@@ -65,18 +84,49 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         }
     })
 
+    //Gets activities from store (local history array for now)
+    app.get('/directline/conversations/:conversationId', (req, res) => {
+        let watermark = Number(req.query.watermark || 0);
+
+        if (history) {
+            //If the bot has pushed anything into the history array
+            if (history.length > watermark) {
+                let activities = getActivitiesSince(watermark);
+                res.status(200).json({
+                    activities,
+                    watermark: watermark + activities.length
+                });
+            } else {
+                res.status(200).send({
+                    activities: [],
+                    watermark
+                })
+            }
+        } else {
+            console.warn("Client is polling connector before conversation is initialized.");
+            res.status(400).send;
+        }
+    })
+
     //Sends message to bot. Assumes message activities. 
     app.post('/directline/conversations/:conversationId/activities', (req, res) => {
+
         let incomingActivity = req.body;
         //make copy of activity. Add required fields. 
         let activity = createMessageActivity(incomingActivity, serviceUrl);
-        fetch(botUrl, {
-            method: "POST",
-            body: JSON.stringify(activity),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
+
+        if (activity) {
+            var conversation = new Conversation(conversationId, user, bot);
+
+            conversation.postActivityToBot(activity, true, (err, statusCode, activityId) => {
+                if (err || !/^2\d\d$/.test(`${statusCode}`)) {
+                    res.send(statusCode || HttpStatus.INTERNAL_SERVER_ERROR);
+                } else {
+                    res.send(statusCode, { id: activityId });
+                }
+                res.end();
+            });
+        }
     })
 
     app.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/upload not implemented") })
@@ -203,6 +253,5 @@ const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: s
 const getActivitiesSince = (watermark: number): IActivity[] => {
     return history.slice(watermark);
 }
-
 
 
