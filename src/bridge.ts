@@ -76,7 +76,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             headers: {
                 "Content-Type": "application/json"
             }
-        })
+        }).then( response => {
+            res.status(response.status).json({id:activity.id});
+        });
     })
 
     app.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/upload not implemented") })
