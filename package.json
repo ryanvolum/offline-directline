@@ -15,6 +15,10 @@
   "types": "dist/bridge.d.ts",
   "author": "Ryan Volum",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryanvolum/offline_dl"
+  },
   "dependencies": {
     "@types/dotenv": "^4.0.0",
     "@types/isomorphic-fetch": "0.0.34",
