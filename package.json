@@ -9,7 +9,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "nodewatch": "nodemon index.js",
-    "start": "node dist/index.js",
+    "start": "node dist/cmdutil.js",
     "directline": "node dist/cmdutil.js"
   },
   "types": "dist/bridge.d.ts",

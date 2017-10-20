@@ -43,7 +43,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     //Gets activities from store (local history array for now)
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
-        let watermark = Number(req.query.watermark || 0);
+        let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
         if (history) {
             //If the bot has pushed anything into the history array
@@ -65,10 +65,10 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         }
     })
 
-    //Sends message to bot. Assumes message activities. 
+    //Sends message to bot. Assumes message activities.
     app.post('/directline/conversations/:conversationId/activities', (req, res) => {
         let incomingActivity = req.body;
-        //make copy of activity. Add required fields. 
+        //make copy of activity. Add required fields.
         let activity = createMessageActivity(incomingActivity, serviceUrl);
         fetch(botUrl, {
             method: "POST",
@@ -76,8 +76,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             headers: {
                 "Content-Type": "application/json"
             }
-        }).then( response => {
-            res.status(response.status).json({id:activity.id});
+        }).then(response => {
+            res.status(response.status).json({ id: activity.id });
         });
     })
 
