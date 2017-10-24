@@ -65,10 +65,10 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         }
     })
 
-    //Sends message to bot. Assumes message activities.
+    //Sends message to bot. Assumes message activities. 
     app.post('/directline/conversations/:conversationId/activities', (req, res) => {
         let incomingActivity = req.body;
-        //make copy of activity. Add required fields.
+        //make copy of activity. Add required fields. 
         let activity = createMessageActivity(incomingActivity, serviceUrl);
         fetch(botUrl, {
             method: "POST",
@@ -76,8 +76,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             headers: {
                 "Content-Type": "application/json"
             }
-        }).then(response => {
-            res.status(response.status).json({ id: activity.id });
+        }).then( response => {
+            res.status(response.status).json({id:activity.id});
         });
     })
 
