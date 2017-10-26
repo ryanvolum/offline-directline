@@ -43,7 +43,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     //Gets activities from store (local history array for now)
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
-        let watermark = Number(req.query.watermark || 0);
+        let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
         if (history) {
             //If the bot has pushed anything into the history array
