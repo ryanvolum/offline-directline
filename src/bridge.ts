@@ -87,7 +87,22 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     // BOT CONVERSATION ENDPOINT
 
     app.post('/v3/conversations', (req, res) => { console.warn("/v3/conversations not implemented") })
-    app.post('/v3/conversations/:conversationId/activities', (req, res) => { console.warn("/v3/conversations/:conversationId/activities") })
+
+    app.post('/v3/conversations/:conversationId/activities', (req, res) => {
+        let activity: IActivity;
+        
+        activity = req.body;
+        activity.id = uuidv4();
+        activity.from = { id: "id", name: "Bot" };
+
+        if (history) {
+            history.push(activity);
+            res.status(200).send();
+        } else {
+            console.warn("Client is attempting to send messages before conversation is initialized.");
+            res.status(400).send();
+        }
+     })
 
     app.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
         let activity: IActivity;
