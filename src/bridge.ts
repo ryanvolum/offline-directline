@@ -34,7 +34,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         });
     })
 
-    app.listen(3000, () => {
+    app.listen(3000,"0.0.0.0", () => {
         console.log('listening');
     });
 
@@ -43,7 +43,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     //Gets activities from store (local history array for now)
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
-        let watermark = Number(req.query.watermark || 0);
+        let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
         if (history) {
             //If the bot has pushed anything into the history array
@@ -76,7 +76,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             headers: {
                 "Content-Type": "application/json"
             }
-        })
+        }).then( response => {
+            res.status(response.status).json({id:activity.id});
+        });
     })
 
     app.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/upload not implemented") })
@@ -85,7 +87,22 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     // BOT CONVERSATION ENDPOINT
 
     app.post('/v3/conversations', (req, res) => { console.warn("/v3/conversations not implemented") })
-    app.post('/v3/conversations/:conversationId/activities', (req, res) => { console.warn("/v3/conversations/:conversationId/activities") })
+
+    app.post('/v3/conversations/:conversationId/activities', (req, res) => {
+        let activity: IActivity;
+        
+        activity = req.body;
+        activity.id = uuidv4();
+        activity.from = { id: "id", name: "Bot" };
+
+        if (history) {
+            history.push(activity);
+            res.status(200).send();
+        } else {
+            console.warn("Client is attempting to send messages before conversation is initialized.");
+            res.status(400).send();
+        }
+     })
 
     app.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
         let activity: IActivity;

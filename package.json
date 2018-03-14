@@ -1,6 +1,6 @@
 {
   "name": "offline-directline",
-  "version": "1.1.4",
+  "version": "1.1.7",
   "description": "Unofficial offline version of the Bot Framework Directline connector",
   "homepage": "https://github.com/ryanvolum/offline_dl",
   "main": "dist/bridge.js",
@@ -15,6 +15,10 @@
   "types": "dist/bridge.d.ts",
   "author": "Ryan Volum",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryanvolum/offline_dl"
+  },
   "dependencies": {
     "@types/dotenv": "^4.0.0",
     "@types/isomorphic-fetch": "0.0.34",
