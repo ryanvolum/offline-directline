@@ -60,7 +60,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
                 })
             }
         } else {
-            console.warn("Client is polling connector before conversation is initialized.");
+            // Client is polling connector before conversation is initialized
             res.status(400).send;
         }
     })
@@ -76,8 +76,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             headers: {
                 "Content-Type": "application/json"
             }
-        }).then( response => {
-            res.status(response.status).json({id:activity.id});
+        }).then(response => {
+            res.status(response.status).json({ id: activity.id });
         });
     })
 
@@ -90,7 +90,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     app.post('/v3/conversations/:conversationId/activities', (req, res) => {
         let activity: IActivity;
-        
+
         activity = req.body;
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
@@ -99,10 +99,10 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             history.push(activity);
             res.status(200).send();
         } else {
-            console.warn("Client is attempting to send messages before conversation is initialized.");
+            //Client is attempting to send messages before conversation is initialized.
             res.status(400).send();
         }
-     })
+    })
 
     app.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
         let activity: IActivity;
@@ -115,7 +115,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
             history.push(activity);
             res.status(200).send();
         } else {
-            console.warn("Client is attempting to send messages before conversation is initialized.");
+            //Client is attempting to send messages before conversation is initialized.
             res.status(400).send();
         }
 
