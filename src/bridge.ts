@@ -2,7 +2,7 @@ import * as express from 'express';
 import bodyParser = require('body-parser');
 import 'isomorphic-fetch';
 import * as uuidv4 from 'uuid/v4';
-import { IActivity, IAttachment, IBotData, IChannelAccount, IConversation, IConversationAccount, IEntity, IMessageActivity, IUser } from './types';
+import { IActivity, IAttachment, IBotData, IChannelAccount, IConversation, IConversationAccount, IEntity, IMessageActivity, IUser, IConversationUpdateActivity } from './types';
 
 const expires_in = 1800;
 let conversationId: string;
@@ -28,9 +28,19 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         history = [];
         conversationId = uuidv4();
         console.log("Created conversation with conversationId: " + conversationId);
-        res.send({
-            conversationId,
-            expires_in
+
+        let activity = createConversationUpdateActivity(serviceUrl, conversationId);
+        fetch(botUrl, {
+            method: "POST",
+            body: JSON.stringify(activity),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then(response => {
+            res.status(response.status).send({
+                conversationId,
+                expires_in
+            });
         });
     })
 
@@ -215,6 +225,19 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
 //CLIENT ENDPOINT HELPERS
 const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, cId: string = conversationId): IMessageActivity => {
     return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': cId }, id: uuidv4() };
+}
+
+const createConversationUpdateActivity = (serviceUrl: string, cId: string = conversationId): IConversationUpdateActivity => {
+    const activity: IConversationUpdateActivity = {
+        type: 'conversationUpdate',
+        channelId: "emulator",
+        serviceUrl: serviceUrl,
+        conversation: { 'id': cId },
+        id: uuidv4(),
+        membersAdded: [],
+        membersRemoved: []
+    }
+    return activity;
 }
 
 const getActivitiesSince = (watermark: number): IActivity[] => {

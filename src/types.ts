@@ -57,3 +57,10 @@ export interface IConversation {
     conversationId: string,
     history?: IActivity[]
 }
+
+export interface IConversationUpdateActivity extends IActivity {
+    membersAdded?: IChannelAccount[],
+    membersRemoved?: IChannelAccount[],
+    topicName?: string,
+    historyDisclosed?: boolean,
+}
