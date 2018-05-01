@@ -28,12 +28,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         history = [];
         conversationId = uuidv4();
         console.log("Created conversation with conversationId: " + conversationId);
-        res.send({
-            conversationId,
-            expires_in
-        });
 
-        let activity = createConversationUpdateActivity();
+        let activity = createConversationUpdateActivity(serviceUrl, conversationId);
         fetch(botUrl, {
             method: "POST",
             body: JSON.stringify(activity),
@@ -41,7 +37,10 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
                 "Content-Type": "application/json"
             }
         }).then(response => {
-            res.status(response.status).json({ id: activity.id });
+            res.status(response.status).send({
+                conversationId,
+                expires_in
+            });
         });
     })
 
@@ -228,9 +227,13 @@ const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: s
     return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': cId }, id: uuidv4() };
 }
 
-const createConversationUpdateActivity = (): IConversationUpdateActivity => {
+const createConversationUpdateActivity = (serviceUrl: string, cId: string = conversationId): IConversationUpdateActivity => {
     const activity: IConversationUpdateActivity = {
         type: 'conversationUpdate',
+        channelId: "emulator",
+        serviceUrl: serviceUrl,
+        conversation: { 'id': cId },
+        id: uuidv4(),
         membersAdded: [],
         membersRemoved: []
     }
