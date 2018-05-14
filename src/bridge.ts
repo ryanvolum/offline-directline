@@ -1,15 +1,18 @@
 import * as express from 'express';
 import bodyParser = require('body-parser');
 import 'isomorphic-fetch';
+import * as moment from 'moment';
 import * as uuidv4 from 'uuid/v4';
+
 import { IActivity, IAttachment, IBotData, IChannelAccount, IConversation, IConversationAccount, IEntity, IMessageActivity, IUser, IConversationUpdateActivity } from './types';
 
 const expires_in = 1800;
-let conversationId: string;
+const conversationsCleanupInterval = 10000;
+let conversations: { [key: string]:  IConversation} = {};
 let botDataStore: { [key: string]: IBotData } = {};
-let history: IActivity[];
 
 export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string) => {
+    conversationsCleanup();
     app.use(bodyParser.json()); // for parsing application/json
     app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
     app.use((req, res, next) => {
@@ -25,8 +28,11 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     //Creates a conversation
     app.post('/directline/conversations', (req, res) => {
-        history = [];
-        conversationId = uuidv4();
+        let conversationId: string = uuidv4().toString();
+        conversations[conversationId] = {
+            conversationId: uuidv4().toString(),
+            history: []
+        };
         console.log("Created conversation with conversationId: " + conversationId);
 
         let activity = createConversationUpdateActivity(serviceUrl, conversationId);
@@ -55,10 +61,10 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
         let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
-        if (history) {
+        if (conversations[req.params.conversationId]) {
             //If the bot has pushed anything into the history array
-            if (history.length > watermark) {
-                let activities = getActivitiesSince(watermark);
+            if (conversations[req.params.conversationId].history.length > watermark) {
+                let activities = getActivitiesSince(watermark, req.params.conversationId);
                 res.status(200).json({
                     activities,
                     watermark: watermark + activities.length
@@ -80,6 +86,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         let incomingActivity = req.body;
         //make copy of activity. Add required fields. 
         let activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
+        conversations[req.params.conversationId].history.push(activity);
         fetch(botUrl, {
             method: "POST",
             body: JSON.stringify(activity),
@@ -105,8 +112,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        if (history) {
-            history.push(activity);
+        if (conversations[req.params.conversationId]) {
+            conversations[req.params.conversationId].history.push(activity);
             res.status(200).send();
         } else {
             //Client is attempting to send messages before conversation is initialized.
@@ -121,8 +128,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        if (history) {
-            history.push(activity);
+        if (conversations[req.params.conversationId]) {
+            conversations[req.params.conversationId].history.push(activity);
             res.status(200).send();
         } else {
             //Client is attempting to send messages before conversation is initialized.
@@ -223,16 +230,16 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
 }
 
 //CLIENT ENDPOINT HELPERS
-const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, cId: string = conversationId): IMessageActivity => {
-    return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': cId }, id: uuidv4() };
+const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, conversationId: string): IMessageActivity => {
+    return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': conversationId }, id: uuidv4() };
 }
 
-const createConversationUpdateActivity = (serviceUrl: string, cId: string = conversationId): IConversationUpdateActivity => {
+const createConversationUpdateActivity = (serviceUrl: string, conversationId: string): IConversationUpdateActivity => {
     const activity: IConversationUpdateActivity = {
         type: 'conversationUpdate',
         channelId: "emulator",
         serviceUrl: serviceUrl,
-        conversation: { 'id': cId },
+        conversation: { 'id': conversationId },
         id: uuidv4(),
         membersAdded: [],
         membersRemoved: []
@@ -240,9 +247,21 @@ const createConversationUpdateActivity = (serviceUrl: string, cId: string = conv
     return activity;
 }
 
-const getActivitiesSince = (watermark: number): IActivity[] => {
-    return history.slice(watermark);
-}
+const getActivitiesSince = (watermark: number, conversationId: string): IActivity[] => {
+    return conversations[conversationId].history.slice(watermark);     
+}	 
 
-
-
+const conversationsCleanup = () => {
+    setInterval(() => {
+        let expiresTime = moment().subtract(expires_in, 'seconds');
+        Object.keys(conversations).forEach( conversationId => {
+            if (conversations[conversationId].history.length>0) {
+                let lastTime = moment(conversations[conversationId].history[conversations[conversationId].history.length-1].localTimestamp);
+                if ( lastTime < expiresTime) {
+                    delete conversations[conversationId];
+                    console.log("deleted cId: "+conversationId);
+                }
+            }
+        });
+    }, conversationsCleanupInterval);
+} 
