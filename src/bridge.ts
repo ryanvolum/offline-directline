@@ -61,23 +61,20 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
         let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
-        if (conversations[req.params.conversationId]) {
-            //If the bot has pushed anything into the history array
-            if (conversations[req.params.conversationId].history.length > watermark) {
-                let activities = getActivitiesSince(watermark, req.params.conversationId);
-                res.status(200).json({
-                    activities,
-                    watermark: watermark + activities.length
-                });
-            } else {
-                res.status(200).send({
-                    activities: [],
-                    watermark
-                })
-            }
+        let conversation = getConversation(req.params.conversationId)
+
+        //If the bot has pushed anything into the history array
+        if (conversation.history.length > watermark) {
+            let activities = conversation.history.slice(watermark)
+            res.status(200).json({
+                activities,
+                watermark: watermark + activities.length
+            });
         } else {
-            // Client is polling connector before conversation is initialized
-            res.status(400).send;
+            res.status(200).send({
+                activities: [],
+                watermark
+            })
         }
     })
 
@@ -86,7 +83,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         let incomingActivity = req.body;
         //make copy of activity. Add required fields. 
         let activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
-        conversations[req.params.conversationId].history.push(activity);
+
+        let conversation = getConversation(req.params.conversationId)
+        conversation.history.push(activity);
         fetch(botUrl, {
             method: "POST",
             body: JSON.stringify(activity),
@@ -112,13 +111,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        if (conversations[req.params.conversationId]) {
-            conversations[req.params.conversationId].history.push(activity);
-            res.status(200).send();
-        } else {
-            //Client is attempting to send messages before conversation is initialized.
-            res.status(400).send();
-        }
+        let conversation = getConversation(req.params.conversationId)
+        conversation.history.push(activity);
+        res.status(200).send();
     })
 
     app.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
@@ -128,13 +123,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        if (conversations[req.params.conversationId]) {
-            conversations[req.params.conversationId].history.push(activity);
-            res.status(200).send();
-        } else {
-            //Client is attempting to send messages before conversation is initialized.
-            res.status(400).send();
-        }
+        let conversation = getConversation(req.params.conversationId)
+        conversation.history.push(activity);
+        res.status(200).send();
 
     })
 
@@ -177,6 +168,18 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         deleteStateForUser(req, res);
     })
 
+}
+
+const getConversation = (conversationId: string) => {
+
+    if (!conversations[conversationId]) {
+        //Client is attempting to send messages before conversation is initialized.
+        conversations[conversationId] = {
+            conversationId: conversationId,
+            history: []
+        };
+    }
+    return conversations[conversationId];
 }
 
 const getBotDataKey = (channelId: string, conversationId: string, userId: string) => {
@@ -246,10 +249,6 @@ const createConversationUpdateActivity = (serviceUrl: string, conversationId: st
     }
     return activity;
 }
-
-const getActivitiesSince = (watermark: number, conversationId: string): IActivity[] => {
-    return conversations[conversationId].history.slice(watermark);     
-}	 
 
 const conversationsCleanup = () => {
     setInterval(() => {
