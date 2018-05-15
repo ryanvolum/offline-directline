@@ -11,7 +11,12 @@ const conversationsCleanupInterval = 10000;
 let conversations: { [key: string]:  IConversation} = {};
 let botDataStore: { [key: string]: IBotData } = {};
 
-export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string) => {
+// By default require that a conversation is initialized before it is accessed, returning a 400 when not the case.  
+// If set to false, a new conversation reference is created on the fly
+let requireInit = false;
+
+export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string, conversationInitRequired = true) => {
+    requireInit = conversationInitRequired;
     conversationsCleanup();
     app.use(bodyParser.json()); // for parsing application/json
     app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -63,18 +68,24 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
         let conversation = getConversation(req.params.conversationId)
 
-        //If the bot has pushed anything into the history array
-        if (conversation.history.length > watermark) {
-            let activities = conversation.history.slice(watermark)
-            res.status(200).json({
-                activities,
-                watermark: watermark + activities.length
-            });
-        } else {
-            res.status(200).send({
-                activities: [],
-                watermark
-            })
+        if (conversation) {
+            //If the bot has pushed anything into the history array
+            if (conversation.history.length > watermark) {
+                let activities = conversation.history.slice(watermark)
+                res.status(200).json({
+                    activities,
+                    watermark: watermark + activities.length
+                });
+            } else {
+                res.status(200).send({
+                    activities: [],
+                    watermark
+                })
+            }
+        }
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
         }
     })
 
@@ -85,16 +96,23 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         let activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
 
         let conversation = getConversation(req.params.conversationId)
-        conversation.history.push(activity);
-        fetch(botUrl, {
-            method: "POST",
-            body: JSON.stringify(activity),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }).then(response => {
-            res.status(response.status).json({ id: activity.id });
-        });
+
+        if (conversation) {
+            conversation.history.push(activity);
+            fetch(botUrl, {
+                method: "POST",
+                body: JSON.stringify(activity),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => {
+                res.status(response.status).json({ id: activity.id });
+            });
+        }
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
+        }
     })
 
     app.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/upload not implemented") })
@@ -112,8 +130,14 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.from = { id: "id", name: "Bot" };
 
         let conversation = getConversation(req.params.conversationId)
-        conversation.history.push(activity);
-        res.status(200).send();
+        if (conversation) {
+            conversation.history.push(activity);
+            res.status(200).send();
+        }
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
+        }
     })
 
     app.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
@@ -124,9 +148,14 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.from = { id: "id", name: "Bot" };
 
         let conversation = getConversation(req.params.conversationId)
-        conversation.history.push(activity);
-        res.status(200).send();
-
+        if (conversation) {
+            conversation.history.push(activity);
+            res.status(200).send();
+        }
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
+        }
     })
 
     app.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn("/v3/conversations/:conversationId/members not implemented") })
@@ -172,8 +201,8 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
 const getConversation = (conversationId: string) => {
 
-    if (!conversations[conversationId]) {
-        //Client is attempting to send messages before conversation is initialized.
+    // Create conversation on the fly when needed and init not required
+    if (!conversations[conversationId] && !requireInit) {
         conversations[conversationId] = {
             conversationId: conversationId,
             history: []
