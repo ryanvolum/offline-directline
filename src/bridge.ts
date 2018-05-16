@@ -1,15 +1,21 @@
 import * as express from 'express';
 import bodyParser = require('body-parser');
 import 'isomorphic-fetch';
+import * as moment from 'moment';
 import * as uuidv4 from 'uuid/v4';
+
 import { IActivity, IAttachment, IBotData, IChannelAccount, IConversation, IConversationAccount, IEntity, IMessageActivity, IUser, IConversationUpdateActivity } from './types';
 
 const expires_in = 1800;
-let conversationId: string;
+const conversationsCleanupInterval = 10000;
+let conversations: { [key: string]:  IConversation} = {};
 let botDataStore: { [key: string]: IBotData } = {};
-let history: IActivity[];
 
-export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string) => {
+
+// conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
+// when not the case. If set to false, a new conversation reference is created on the fly
+export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string, conversationInitRequired = true) => {
+    conversationsCleanup();
     app.use(bodyParser.json()); // for parsing application/json
     app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
     app.use((req, res, next) => {
@@ -25,8 +31,11 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
     //Creates a conversation
     app.post('/directline/conversations', (req, res) => {
-        history = [];
-        conversationId = uuidv4();
+        let conversationId: string = uuidv4().toString();
+        conversations[conversationId] = {
+            conversationId: conversationId,
+            history: []
+        };
         console.log("Created conversation with conversationId: " + conversationId);
 
         let activity = createConversationUpdateActivity(serviceUrl, conversationId);
@@ -55,10 +64,12 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
         let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
-        if (history) {
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+
+        if (conversation) {
             //If the bot has pushed anything into the history array
-            if (history.length > watermark) {
-                let activities = getActivitiesSince(watermark);
+            if (conversation.history.length > watermark) {
+                let activities = conversation.history.slice(watermark)
                 res.status(200).json({
                     activities,
                     watermark: watermark + activities.length
@@ -69,8 +80,9 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
                     watermark
                 })
             }
-        } else {
-            // Client is polling connector before conversation is initialized
+        }
+        else {
+            // Conversation was never initialized
             res.status(400).send;
         }
     })
@@ -80,15 +92,25 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         let incomingActivity = req.body;
         //make copy of activity. Add required fields. 
         let activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
-        fetch(botUrl, {
-            method: "POST",
-            body: JSON.stringify(activity),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }).then(response => {
-            res.status(response.status).json({ id: activity.id });
-        });
+
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+
+        if (conversation) {
+            conversation.history.push(activity);
+            fetch(botUrl, {
+                method: "POST",
+                body: JSON.stringify(activity),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => {
+                res.status(response.status).json({ id: activity.id });
+            });
+        }
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
+        }
     })
 
     app.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/upload not implemented") })
@@ -105,12 +127,14 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        if (history) {
-            history.push(activity);
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        if (conversation) {
+            conversation.history.push(activity);
             res.status(200).send();
-        } else {
-            //Client is attempting to send messages before conversation is initialized.
-            res.status(400).send();
+        }
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
         }
     })
 
@@ -121,14 +145,15 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        if (history) {
-            history.push(activity);
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        if (conversation) {
+            conversation.history.push(activity);
             res.status(200).send();
-        } else {
-            //Client is attempting to send messages before conversation is initialized.
-            res.status(400).send();
         }
-
+        else {
+            // Conversation was never initialized
+            res.status(400).send;
+        }
     })
 
     app.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn("/v3/conversations/:conversationId/members not implemented") })
@@ -170,6 +195,18 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         deleteStateForUser(req, res);
     })
 
+}
+
+const getConversation = (conversationId: string, conversationInitRequired: boolean) => {
+
+    // Create conversation on the fly when needed and init not required
+    if (!conversations[conversationId] && !conversationInitRequired) {
+        conversations[conversationId] = {
+            conversationId: conversationId,
+            history: []
+        };
+    }
+    return conversations[conversationId];
 }
 
 const getBotDataKey = (channelId: string, conversationId: string, userId: string) => {
@@ -223,16 +260,16 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
 }
 
 //CLIENT ENDPOINT HELPERS
-const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, cId: string = conversationId): IMessageActivity => {
-    return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': cId }, id: uuidv4() };
+const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, conversationId: string): IMessageActivity => {
+    return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': conversationId }, id: uuidv4() };
 }
 
-const createConversationUpdateActivity = (serviceUrl: string, cId: string = conversationId): IConversationUpdateActivity => {
+const createConversationUpdateActivity = (serviceUrl: string, conversationId: string): IConversationUpdateActivity => {
     const activity: IConversationUpdateActivity = {
         type: 'conversationUpdate',
         channelId: "emulator",
         serviceUrl: serviceUrl,
-        conversation: { 'id': cId },
+        conversation: { 'id': conversationId },
         id: uuidv4(),
         membersAdded: [],
         membersRemoved: []
@@ -240,9 +277,17 @@ const createConversationUpdateActivity = (serviceUrl: string, cId: string = conv
     return activity;
 }
 
-const getActivitiesSince = (watermark: number): IActivity[] => {
-    return history.slice(watermark);
-}
-
-
-
+const conversationsCleanup = () => {
+    setInterval(() => {
+        let expiresTime = moment().subtract(expires_in, 'seconds');
+        Object.keys(conversations).forEach( conversationId => {
+            if (conversations[conversationId].history.length>0) {
+                let lastTime = moment(conversations[conversationId].history[conversations[conversationId].history.length-1].localTimestamp);
+                if ( lastTime < expiresTime) {
+                    delete conversations[conversationId];
+                    console.log("deleted cId: "+conversationId);
+                }
+            }
+        });
+    }, conversationsCleanupInterval);
+} 
