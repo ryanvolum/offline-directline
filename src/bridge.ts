@@ -11,12 +11,10 @@ const conversationsCleanupInterval = 10000;
 let conversations: { [key: string]:  IConversation} = {};
 let botDataStore: { [key: string]: IBotData } = {};
 
-// By default require that a conversation is initialized before it is accessed, returning a 400 when not the case.  
-// If set to false, a new conversation reference is created on the fly
-let requireInit = false;
 
+// conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
+// when not the case. If set to false, a new conversation reference is created on the fly
 export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string, conversationInitRequired = true) => {
-    requireInit = conversationInitRequired;
     conversationsCleanup();
     app.use(bodyParser.json()); // for parsing application/json
     app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -35,7 +33,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     app.post('/directline/conversations', (req, res) => {
         let conversationId: string = uuidv4().toString();
         conversations[conversationId] = {
-            conversationId: uuidv4().toString(),
+            conversationId: conversationId,
             history: []
         };
         console.log("Created conversation with conversationId: " + conversationId);
@@ -66,7 +64,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
     app.get('/directline/conversations/:conversationId/activities', (req, res) => {
         let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
 
-        let conversation = getConversation(req.params.conversationId)
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
 
         if (conversation) {
             //If the bot has pushed anything into the history array
@@ -95,7 +93,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         //make copy of activity. Add required fields. 
         let activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
 
-        let conversation = getConversation(req.params.conversationId)
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
 
         if (conversation) {
             conversation.history.push(activity);
@@ -129,7 +127,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        let conversation = getConversation(req.params.conversationId)
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
             conversation.history.push(activity);
             res.status(200).send();
@@ -147,7 +145,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         activity.id = uuidv4();
         activity.from = { id: "id", name: "Bot" };
 
-        let conversation = getConversation(req.params.conversationId)
+        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
             conversation.history.push(activity);
             res.status(200).send();
@@ -199,10 +197,10 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
 
 }
 
-const getConversation = (conversationId: string) => {
+const getConversation = (conversationId: string, conversationInitRequired: boolean) => {
 
     // Create conversation on the fly when needed and init not required
-    if (!conversations[conversationId] && !requireInit) {
+    if (!conversations[conversationId] && !conversationInitRequired) {
         conversations[conversationId] = {
             conversationId: conversationId,
             history: []
