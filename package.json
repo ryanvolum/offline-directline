@@ -1,6 +1,6 @@
 {
   "name": "offline-directline",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "description": "Unofficial offline version of the Bot Framework Directline connector",
   "homepage": "https://github.com/ryanvolum/offline_dl",
   "main": "dist/bridge.js",

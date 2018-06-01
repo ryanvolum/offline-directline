@@ -14,7 +14,7 @@ let botDataStore: { [key: string]: IBotData } = {};
 
 // conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
 // when not the case. If set to false, a new conversation reference is created on the fly
-export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string, conversationInitRequired = true) => {
+export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl: string, conversationInitRequired = true, port: number = 3000) => {
     conversationsCleanup();
     app.use(bodyParser.json()); // for parsing application/json
     app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -53,7 +53,7 @@ export const initializeRoutes = (app: express.Server, serviceUrl: string, botUrl
         });
     })
 
-    app.listen(3000, () => {
+    app.listen(port, () => {
         console.log('listening');
     });
 
