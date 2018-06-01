@@ -1,4 +1,4 @@
-const directline = require("offline-directline");
+const directline = require("../dist/bridge");
 const express = require("express");
 
 const app = express();
