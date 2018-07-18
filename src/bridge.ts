@@ -272,7 +272,8 @@ const createConversationUpdateActivity = (serviceUrl: string, conversationId: st
         conversation: { 'id': conversationId },
         id: uuidv4(),
         membersAdded: [],
-        membersRemoved: []
+        membersRemoved: [],
+        from: { 'id': 'offline-directline', 'name': 'Offline Directline Server' }
     }
     return activity;
 }
