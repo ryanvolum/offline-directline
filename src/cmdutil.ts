@@ -1,5 +1,5 @@
-const directline = require("../dist/bridge.js");
-const express = require("express");
+import * as directline from "./bridge"
+import * as express from "express"
 
 const app = express();
 
