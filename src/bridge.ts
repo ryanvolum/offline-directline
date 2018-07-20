@@ -4,7 +4,7 @@ import * as fetch from 'isomorphic-fetch'
 import * as moment from 'moment'
 import * as uuidv4 from 'uuid/v4'
 
-import { IActivity, IAttachment, IBotData, IChannelAccount, IConversation, IConversationAccount, IEntity, IMessageActivity, IUser, IConversationUpdateActivity } from './types';
+import { IActivity, IBotData, IConversation, IMessageActivity, IConversationUpdateActivity } from './types';
 
 const expires_in = 1800;
 const conversationsCleanupInterval = 10000;
