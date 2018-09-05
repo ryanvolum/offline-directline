@@ -8,9 +8,8 @@ import { IActivity, IBotData, IConversation, IConversationUpdateActivity, IMessa
 
 const expiresIn = 1800;
 const conversationsCleanupInterval = 10000;
-let conversations: { [key: string]:  IConversation} = {};
-let botDataStore: { [key: string]: IBotData } = {};
-
+const conversations: { [key: string]: IConversation } = {};
+const botDataStore: { [key: string]: IBotData } = {};
 
 export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
     const router = express.Router()
@@ -37,14 +36,14 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         };
         console.log('Created conversation with conversationId: ' + conversationId);
 
-        let activity = createConversationUpdateActivity(serviceUrl, conversationId);
+        const activity = createConversationUpdateActivity(serviceUrl, conversationId);
         fetch(botUrl, {
             method: 'POST',
             body: JSON.stringify(activity),
             headers: {
                 'Content-Type': 'application/json'
             }
-        }).then(response => {
+        }).then((response) => {
             res.status(response.status).send({
                 conversationId,
                 expiresIn,
@@ -52,43 +51,42 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         });
     })
 
-    //reconnect API
+    // Reconnect API
     router.get('/v3/directline/conversations/:conversationId', (req, res) => { console.warn('/v3/directline/conversations/:conversationId not implemented') })
 
-    //Gets activities from store (local history array for now)
+    // Gets activities from store (local history array for now)
     router.get('/directline/conversations/:conversationId/activities', (req, res) => {
-        let watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
+        const watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
 
-        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
 
         if (conversation) {
-            //If the bot has pushed anything into the history array
+            // If the bot has pushed anything into the history array
             if (conversation.history.length > watermark) {
-                let activities = conversation.history.slice(watermark)
+                const activities = conversation.history.slice(watermark)
                 res.status(200).json({
                     activities,
-                    watermark: watermark + activities.length
+                    watermark: watermark + activities.length,
                 });
             } else {
                 res.status(200).send({
                     activities: [],
-                    watermark
+                    watermark,
                 })
             }
-        }
-        else {
+        } else {
             // Conversation was never initialized
             res.status(400).send();
         }
     })
 
-    //Sends message to bot. Assumes message activities. 
+    // Sends message to bot. Assumes message activities
     router.post('/directline/conversations/:conversationId/activities', (req, res) => {
-        let incomingActivity = req.body;
-        //make copy of activity. Add required fields. 
-        let activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
+        const incomingActivity = req.body;
+        // Make copy of activity. Add required fields
+        const activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
 
-        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
 
         if (conversation) {
             conversation.history.push(activity);
@@ -98,11 +96,10 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
                 headers: {
                     'Content-Type': 'application/json'
                 }
-            }).then(response => {
+            }).then((response) => {
                 res.status(response.status).json({ id: activity.id });
             });
-        }
-        else {
+        } else {
             // Conversation was never initialized
             res.status(400).send();
         }
@@ -122,12 +119,11 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         activity.id = uuidv4();
         activity.from = { id: 'id', name: 'Bot' };
 
-        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
             conversation.history.push(activity);
             res.status(200).send();
-        }
-        else {
+        } else {
             // Conversation was never initialized
             res.status(400).send();
         }
@@ -140,66 +136,65 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         activity.id = uuidv4();
         activity.from = { id: 'id', name: 'Bot' };
 
-        let conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
             conversation.history.push(activity);
             res.status(200).send();
-        }
-        else {
+        } else {
             // Conversation was never initialized
             res.status(400).send();
         }
     })
 
-    router.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/members not implemented') })
-    router.get('/v3/conversations/:conversationId/activities/:activityId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/activities/:activityId/members') })
+    router.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/members not implemented'); });
+    router.get('/v3/conversations/:conversationId/activities/:activityId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/activities/:activityId/members'); });
 
     // BOTSTATE ENDPOINT
 
     router.get('/v3/botstate/:channelId/users/:userId', (req, res) => {
         console.log('Called GET user data');
         getBotData(req, res);
-    })
+    });
 
     router.get('/v3/botstate/:channelId/conversations/:conversationId', (req, res) => {
         console.log(('Called GET conversation data'));
         getBotData(req, res);
-    })
+    });
 
     router.get('/v3/botstate/:channelId/conversations/:conversationId/users/:userId', (req, res) => {
         console.log('Called GET private conversation data');
         getBotData(req, res);
-    })
+    });
 
     router.post('/v3/botstate/:channelId/users/:userId', (req, res) => {
         console.log('Called POST setUserData');
         setUserData(req, res);
-    })
+    });
 
     router.post('/v3/botstate/:channelId/conversations/:conversationId', (req, res) => {
         console.log('Called POST setConversationData');
         setConversationData(req, res);
-    })
+    });
 
     router.post('/v3/botstate/:channelId/conversations/:conversationId/users/:userId', (req, res) => {
         setPrivateConversationData(req, res);
-    })
+    });
 
     router.delete('/v3/botstate/:channelId/users/:userId', (req, res) => {
         console.log('Called DELETE deleteStateForUser');
         deleteStateForUser(req, res);
-    })
+    });
 
-    return router
-}
+    return router;
+};
 
 // conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
 // when not the case. If set to false, a new conversation reference is created on the fly
 export const initializeRoutes = (app: express.Express, serviceUrl: string, botUrl: string, conversationInitRequired = true, port: number = 3000) => {
     conversationsCleanup();
 
-    const router = getRouter(serviceUrl, botUrl, conversationInitRequired)
-    app.use(router)
+    const router = getRouter(serviceUrl, botUrl, conversationInitRequired);
+    app.use(router);
     app.listen(port, () => {
         console.log(`Listening for messages from client on ${serviceUrl}`);
         console.log(`Routing messages to bot on ${botUrl}`);
@@ -224,9 +219,9 @@ const getBotDataKey = (channelId: string, conversationId: string, userId: string
 
 const setBotData = (channelId: string, conversationId: string, userId: string, incomingData: IBotData): IBotData => {
     const key = getBotDataKey(channelId, conversationId, userId);
-    let newData: IBotData = {
+    const newData: IBotData = {
         eTag: new Date().getTime().toString(),
-        data: incomingData.data
+        data: incomingData.data,
     };
 
     if (incomingData) {
@@ -290,10 +285,10 @@ const createConversationUpdateActivity = (serviceUrl: string, conversationId: st
 const conversationsCleanup = () => {
     setInterval(() => {
         const expiresTime = moment().subtract(expiresIn, 'seconds');
-        Object.keys(conversations).forEach( (conversationId) => {
+        Object.keys(conversations).forEach((conversationId) => {
             if (conversations[conversationId].history.length > 0) {
                 const lastTime = moment(conversations[conversationId].history[conversations[conversationId].history.length - 1].localTimestamp);
-                if ( lastTime < expiresTime) {
+                if (lastTime < expiresTime) {
                     delete conversations[conversationId];
                     console.log('deleted cId: ' + conversationId);
                 }
