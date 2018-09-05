@@ -1,12 +1,17 @@
-import * as directline from "./bridge"
-import * as express from "express"
+#!/usr/bin/env node
+import * as directline from './bridge';
+import * as express from 'express';
+import * as program from 'commander';
 
-const app = express();
-
-if (process.argv[2] && process.argv[3]) {
-    const port = process.argv[2];
-    const botEndpoint = process.argv[3];
-    directline.initializeRoutes(app, "http://127.0.0.1:" + port, botEndpoint);
-} else {
-    console.log("Invalid parameters. First parameter should be your host port. Second parameter should be your bot endpoint");
-}
+program
+    .option('-d, --directline <directline>', 'The endpoint/port where offline-directline will run (e.g. "http://127.0.0.1:3000")')
+    .option('-b, --bot <bot>', 'The endpoint/port where your bot lives (e.g. "http://127.0.0.1:3978/api/messages")')
+    .action(() => {
+        if (program.directline && program.bot) {
+            const app = express();
+            directline.initializeRoutes(app, program.directline, program.bot);
+        } else {
+            console.log('offline-directline requires you to pass the endpoint where it will be hosted on and the endpoint where your bot lives (e.g. "directline -d http://127.0.0.1:3000 -b http://127.0.0.1:3978/api/messages")');
+        }
+    })
+    .parse(process.argv);
