@@ -16,13 +16,27 @@ NOTE: Not all routes (e.g. attachments) are fully implemented in this package. F
 ### NPM
 
 ```sh
-npm install --save offline-directline
+npm install offline-directline
 ```
 
 ## Usage
+
 Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to install and include this package in a node project and run it. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
 
-### Set up your direct line connector
+### Set up your direct line connector from the command line
+
+```sh
+npm install offline-directline -g
+```
+Then simply use the "directline" command with the endpoint where you want to host offline-directline and the endpoint where your bot is hosted
+
+```sh
+directline -d "http://127.0.0.1:3000" -b "http://127.0.0.1:3978/api/messages"
+```
+
+For details on how to set up your bot/client, see further instructions below.
+
+### Set up your direct line connector in code
 In order to run an instance of offline directline, you'll need to create a new project, include this module, and run initializeRoutes:
 
 1. Create a new node project 
