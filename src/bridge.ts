@@ -1,12 +1,12 @@
-import * as express from 'express'
-import * as bodyParser from 'body-parser'
-import * as fetch from 'isomorphic-fetch'
-import * as moment from 'moment'
-import * as uuidv4 from 'uuid/v4'
+import * as bodyParser from 'body-parser';
+import * as express from 'express';
+import * as fetch from 'isomorphic-fetch';
+import * as moment from 'moment';
+import * as uuidv4 from 'uuid/v4';
 
-import { IActivity, IBotData, IConversation, IMessageActivity, IConversationUpdateActivity } from './types';
+import { IActivity, IBotData, IConversation, IConversationUpdateActivity, IMessageActivity } from './types';
 
-const expires_in = 1800;
+const expiresIn = 1800;
 const conversationsCleanupInterval = 10000;
 let conversations: { [key: string]:  IConversation} = {};
 let botDataStore: { [key: string]: IBotData } = {};
@@ -18,9 +18,9 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     router.use(bodyParser.json()); // for parsing application/json
     router.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
     router.use((req, res, next) => {
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, PATCH, OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, PATCH, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
         next();
     });
     // CLIENT ENDPOINT
@@ -28,36 +28,36 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         res.status(200).end();
     })
 
-    //Creates a conversation
+    // Creates a conversation
     router.post('/directline/conversations', (req, res) => {
-        let conversationId: string = uuidv4().toString();
+        const conversationId: string = uuidv4().toString();
         conversations[conversationId] = {
-            conversationId: conversationId,
-            history: []
+            conversationId,
+            history: [],
         };
-        console.log("Created conversation with conversationId: " + conversationId);
+        console.log('Created conversation with conversationId: ' + conversationId);
 
         let activity = createConversationUpdateActivity(serviceUrl, conversationId);
         fetch(botUrl, {
-            method: "POST",
+            method: 'POST',
             body: JSON.stringify(activity),
             headers: {
-                "Content-Type": "application/json"
+                'Content-Type': 'application/json'
             }
         }).then(response => {
             res.status(response.status).send({
                 conversationId,
-                expires_in
+                expiresIn,
             });
         });
     })
 
     //reconnect API
-    router.get('/v3/directline/conversations/:conversationId', (req, res) => { console.warn("/v3/directline/conversations/:conversationId not implemented") })
+    router.get('/v3/directline/conversations/:conversationId', (req, res) => { console.warn('/v3/directline/conversations/:conversationId not implemented') })
 
     //Gets activities from store (local history array for now)
     router.get('/directline/conversations/:conversationId/activities', (req, res) => {
-        let watermark = req.query.watermark && req.query.watermark !== "null" ? Number(req.query.watermark) : 0;
+        let watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
 
         let conversation = getConversation(req.params.conversationId, conversationInitRequired)
 
@@ -93,10 +93,10 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         if (conversation) {
             conversation.history.push(activity);
             fetch(botUrl, {
-                method: "POST",
+                method: 'POST',
                 body: JSON.stringify(activity),
                 headers: {
-                    "Content-Type": "application/json"
+                    'Content-Type': 'application/json'
                 }
             }).then(response => {
                 res.status(response.status).json({ id: activity.id });
@@ -108,19 +108,19 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         }
     })
 
-    router.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/upload not implemented") })
-    router.get('/v3/directline/conversations/:conversationId/stream', (req, res) => { console.warn("/v3/directline/conversations/:conversationId/stream not implemented") })
+    router.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/upload not implemented') })
+    router.get('/v3/directline/conversations/:conversationId/stream', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/stream not implemented') })
 
     // BOT CONVERSATION ENDPOINT
 
-    router.post('/v3/conversations', (req, res) => { console.warn("/v3/conversations not implemented") })
+    router.post('/v3/conversations', (req, res) => { console.warn('/v3/conversations not implemented') })
 
     router.post('/v3/conversations/:conversationId/activities', (req, res) => {
         let activity: IActivity;
 
         activity = req.body;
         activity.id = uuidv4();
-        activity.from = { id: "id", name: "Bot" };
+        activity.from = { id: 'id', name: 'Bot' };
 
         let conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
@@ -138,7 +138,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
         activity = req.body;
         activity.id = uuidv4();
-        activity.from = { id: "id", name: "Bot" };
+        activity.from = { id: 'id', name: 'Bot' };
 
         let conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
@@ -151,33 +151,33 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         }
     })
 
-    router.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn("/v3/conversations/:conversationId/members not implemented") })
-    router.get('/v3/conversations/:conversationId/activities/:activityId/members', (req, res) => { console.warn("/v3/conversations/:conversationId/activities/:activityId/members") })
+    router.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/members not implemented') })
+    router.get('/v3/conversations/:conversationId/activities/:activityId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/activities/:activityId/members') })
 
     // BOTSTATE ENDPOINT
 
     router.get('/v3/botstate/:channelId/users/:userId', (req, res) => {
-        console.log("Called GET user data");
+        console.log('Called GET user data');
         getBotData(req, res);
     })
 
     router.get('/v3/botstate/:channelId/conversations/:conversationId', (req, res) => {
-        console.log(("Called GET conversation data"));
+        console.log(('Called GET conversation data'));
         getBotData(req, res);
     })
 
     router.get('/v3/botstate/:channelId/conversations/:conversationId/users/:userId', (req, res) => {
-        console.log("Called GET private conversation data");
+        console.log('Called GET private conversation data');
         getBotData(req, res);
     })
 
     router.post('/v3/botstate/:channelId/users/:userId', (req, res) => {
-        console.log("Called POST setUserData");
+        console.log('Called POST setUserData');
         setUserData(req, res);
     })
 
     router.post('/v3/botstate/:channelId/conversations/:conversationId', (req, res) => {
-        console.log("Called POST setConversationData");
+        console.log('Called POST setConversationData');
         setConversationData(req, res);
     })
 
@@ -186,7 +186,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     })
 
     router.delete('/v3/botstate/:channelId/users/:userId', (req, res) => {
-        console.log("Called DELETE deleteStateForUser");
+        console.log('Called DELETE deleteStateForUser');
         deleteStateForUser(req, res);
     })
 
@@ -201,7 +201,8 @@ export const initializeRoutes = (app: express.Express, serviceUrl: string, botUr
     const router = getRouter(serviceUrl, botUrl, conversationInitRequired)
     app.use(router)
     app.listen(port, () => {
-        console.log('listening');
+        console.log(`Listening for messages from client on ${serviceUrl}`);
+        console.log(`Routing messages to bot on ${botUrl}`);
     });
 }
 
@@ -210,7 +211,7 @@ const getConversation = (conversationId: string, conversationInitRequired: boole
     // Create conversation on the fly when needed and init not required
     if (!conversations[conversationId] && !conversationInitRequired) {
         conversations[conversationId] = {
-            conversationId: conversationId,
+            conversationId,
             history: []
         };
     }
@@ -240,7 +241,7 @@ const setBotData = (channelId: string, conversationId: string, userId: string, i
 
 const getBotData = (req: express.Request, res: express.Response) => {
     const key = getBotDataKey(req.params.channelId, req.params.conversationId, req.params.userId);
-    console.log("Data key: " + key);
+    console.log('Data key: ' + key);
 
     res.status(200).send(botDataStore[key] || { data: null, eTag: '*' });
 }
@@ -259,7 +260,7 @@ const setPrivateConversationData = (req: express.Request, res: express.Response)
 
 const deleteStateForUser = (req: express.Request, res: express.Response) => {
     Object.keys(botDataStore)
-        .forEach(key => {
+        .forEach((key) => {
             if (key.endsWith(`!{req.query.userId}`)) {
                 delete botDataStore[key];
             }
@@ -267,36 +268,36 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
     res.status(200).send();
 }
 
-//CLIENT ENDPOINT HELPERS
+// CLIENT ENDPOINT HELPERS
 const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, conversationId: string): IMessageActivity => {
-    return { ...incomingActivity, channelId: "emulator", serviceUrl: serviceUrl, conversation: { 'id': conversationId }, id: uuidv4() };
-}
+    return { ...incomingActivity, channelId: 'emulator', serviceUrl, conversation: { id: conversationId }, id: uuidv4() };
+};
 
 const createConversationUpdateActivity = (serviceUrl: string, conversationId: string): IConversationUpdateActivity => {
     const activity: IConversationUpdateActivity = {
         type: 'conversationUpdate',
-        channelId: "emulator",
-        serviceUrl: serviceUrl,
-        conversation: { 'id': conversationId },
+        channelId: 'emulator',
+        serviceUrl,
+        conversation: { id: conversationId },
         id: uuidv4(),
         membersAdded: [],
         membersRemoved: [],
-        from: { 'id': 'offline-directline', 'name': 'Offline Directline Server' }
+        from: { id: 'offline-directline', name: 'Offline Directline Server' }
     }
     return activity;
-}
+};
 
 const conversationsCleanup = () => {
     setInterval(() => {
-        let expiresTime = moment().subtract(expires_in, 'seconds');
-        Object.keys(conversations).forEach( conversationId => {
-            if (conversations[conversationId].history.length>0) {
-                let lastTime = moment(conversations[conversationId].history[conversations[conversationId].history.length-1].localTimestamp);
+        const expiresTime = moment().subtract(expiresIn, 'seconds');
+        Object.keys(conversations).forEach( (conversationId) => {
+            if (conversations[conversationId].history.length > 0) {
+                const lastTime = moment(conversations[conversationId].history[conversations[conversationId].history.length - 1].localTimestamp);
                 if ( lastTime < expiresTime) {
                     delete conversations[conversationId];
-                    console.log("deleted cId: "+conversationId);
+                    console.log('deleted cId: ' + conversationId);
                 }
             }
         });
     }, conversationsCleanupInterval);
-} 
+};
