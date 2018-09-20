@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import * as directline from './bridge';
-import * as express from 'express';
 import * as program from 'commander';
+import * as express from 'express';
+import * as directline from './bridge';
 
 program
     .option('-d, --directline <directline>', 'The endpoint/port where offline-directline will run (e.g. "http://127.0.0.1:3000")')
