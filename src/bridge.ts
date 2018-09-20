@@ -12,7 +12,7 @@ const conversations: { [key: string]: IConversation } = {};
 const botDataStore: { [key: string]: IBotData } = {};
 
 export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
-    const router = express.Router()
+    const router = express.Router();
 
     router.use(bodyParser.json()); // for parsing application/json
     router.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -119,7 +119,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         activity.id = uuidv4();
         activity.from = { id: 'id', name: 'Bot' };
 
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
         if (conversation) {
             conversation.history.push(activity);
             res.status(200).send();
@@ -190,16 +190,18 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
 // conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
 // when not the case. If set to false, a new conversation reference is created on the fly
-export const initializeRoutes = (app: express.Express, serviceUrl: string, botUrl: string, conversationInitRequired = true, port: number = 3000) => {
+export const initializeRoutes = (app: express.Express, port: number = 3000, botUrl: string, conversationInitRequired = true) => {
     conversationsCleanup();
 
-    const router = getRouter(serviceUrl, botUrl, conversationInitRequired);
+    const directLineEndpoint = `http://127.0.0.1:${port}`;
+    const router = getRouter(directLineEndpoint, botUrl, conversationInitRequired);
+
     app.use(router);
     app.listen(port, () => {
-        console.log(`Listening for messages from client on ${serviceUrl}`);
+        console.log(`Listening for messages from client on ${directLineEndpoint}`);
         console.log(`Routing messages to bot on ${botUrl}`);
     });
-}
+};
 
 const getConversation = (conversationId: string, conversationInitRequired: boolean) => {
 
@@ -211,11 +213,11 @@ const getConversation = (conversationId: string, conversationInitRequired: boole
         };
     }
     return conversations[conversationId];
-}
+};
 
 const getBotDataKey = (channelId: string, conversationId: string, userId: string) => {
     return `$${channelId || '*'}!${conversationId || '*'}!${userId || '*'}`;
-}
+};
 
 const setBotData = (channelId: string, conversationId: string, userId: string, incomingData: IBotData): IBotData => {
     const key = getBotDataKey(channelId, conversationId, userId);
@@ -232,26 +234,26 @@ const setBotData = (channelId: string, conversationId: string, userId: string, i
     }
 
     return newData;
-}
+};
 
 const getBotData = (req: express.Request, res: express.Response) => {
     const key = getBotDataKey(req.params.channelId, req.params.conversationId, req.params.userId);
     console.log('Data key: ' + key);
 
     res.status(200).send(botDataStore[key] || { data: null, eTag: '*' });
-}
+};
 
 const setUserData = (req: express.Request, res: express.Response) => {
     res.status(200).send(setBotData(req.params.channelId, req.params.conversationId, req.params.userId, req.body));
-}
+};
 
 const setConversationData = (req: express.Request, res: express.Response) => {
     res.status(200).send(setBotData(req.params.channelId, req.params.conversationId, req.params.userId, req.body));
-}
+};
 
 const setPrivateConversationData = (req: express.Request, res: express.Response) => {
     res.status(200).send(setBotData(req.params.channelId, req.params.conversationId, req.params.userId, req.body));
-}
+};
 
 const deleteStateForUser = (req: express.Request, res: express.Response) => {
     Object.keys(botDataStore)
@@ -261,7 +263,7 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
             }
         });
     res.status(200).send();
-}
+};
 
 // CLIENT ENDPOINT HELPERS
 const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, conversationId: string): IMessageActivity => {
@@ -278,7 +280,7 @@ const createConversationUpdateActivity = (serviceUrl: string, conversationId: st
         membersAdded: [],
         membersRemoved: [],
         from: { id: 'offline-directline', name: 'Offline Directline Server' }
-    }
+    };
     return activity;
 };
 

@@ -31,7 +31,7 @@ npm install offline-directline -g
 Then simply use the "directline" command with the endpoint where you want to host offline-directline and the endpoint where your bot is hosted
 
 ```sh
-directline -d "http://127.0.0.1:3000" -b "http://127.0.0.1:3978/api/messages"
+directline -d 3000 -b "http://127.0.0.1:3978/api/messages"
 ```
 
 For details on how to set up your bot/client, see further instructions below.
@@ -46,7 +46,7 @@ In order to run an instance of offline directline, you'll need to create a new p
 3. Create an express server
 4. Call the initializeRoutes function, passing in:
     * Your express server
-    * The endpoint/port where you want to host the offline connector
+    * The port where you want to host the offline connector
     * Your bot messaging endpoint (generally ends in api/messages)
 4. Run your code (node app.js in the command line)!
 
@@ -55,7 +55,7 @@ const directline = require("offline-directline");
 const express = require("express");
 
 const app = express();
-directline.initializeRoutes(app, "http://127.0.0.1:3000", "http://127.0.0.1:3978/api/messages");
+directline.initializeRoutes(app, 3000, "http://127.0.0.1:3978/api/messages");
 ```
 
 ### Build a bot 
