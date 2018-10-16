@@ -139,7 +139,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         const conversation = getConversation(req.params.conversationId, conversationInitRequired)
         if (conversation) {
             conversation.history.push(activity);
-            res.status(200).send();
+            res.status(200).send({ id: activity.id });
         } else {
             // Conversation was never initialized
             res.status(400).send();
