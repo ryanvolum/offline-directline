@@ -19,13 +19,13 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     router.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, PATCH, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-ms-bot-agent');
         next();
     });
     // CLIENT ENDPOINT
     router.options('/directline', (req, res) => {
         res.status(200).end();
-    })
+    });
 
     // Creates a conversation
     router.post('/directline/conversations', (req, res) => {
@@ -41,29 +41,29 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
             method: 'POST',
             body: JSON.stringify(activity),
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         }).then((response) => {
             res.status(response.status).send({
                 conversationId,
                 expiresIn,
             });
         });
-    })
+    });
 
     // Reconnect API
-    router.get('/v3/directline/conversations/:conversationId', (req, res) => { console.warn('/v3/directline/conversations/:conversationId not implemented') })
+    router.get('/v3/directline/conversations/:conversationId', (req, res) => { console.warn('/v3/directline/conversations/:conversationId not implemented'); });
 
     // Gets activities from store (local history array for now)
     router.get('/directline/conversations/:conversationId/activities', (req, res) => {
         const watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
 
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
 
         if (conversation) {
             // If the bot has pushed anything into the history array
             if (conversation.history.length > watermark) {
-                const activities = conversation.history.slice(watermark)
+                const activities = conversation.history.slice(watermark);
                 res.status(200).json({
                     activities,
                     watermark: watermark + activities.length,
@@ -72,13 +72,13 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
                 res.status(200).send({
                     activities: [],
                     watermark,
-                })
+                });
             }
         } else {
             // Conversation was never initialized
             res.status(400).send();
         }
-    })
+    });
 
     // Sends message to bot. Assumes message activities
     router.post('/directline/conversations/:conversationId/activities', (req, res) => {
@@ -86,7 +86,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         // Make copy of activity. Add required fields
         const activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
 
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
 
         if (conversation) {
             conversation.history.push(activity);
@@ -94,8 +94,8 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
                 method: 'POST',
                 body: JSON.stringify(activity),
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                },
             }).then((response) => {
                 res.status(response.status).json({ id: activity.id });
             });
@@ -103,14 +103,14 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
             // Conversation was never initialized
             res.status(400).send();
         }
-    })
+    });
 
-    router.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/upload not implemented') })
-    router.get('/v3/directline/conversations/:conversationId/stream', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/stream not implemented') })
+    router.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/upload not implemented'); });
+    router.get('/v3/directline/conversations/:conversationId/stream', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/stream not implemented'); });
 
     // BOT CONVERSATION ENDPOINT
 
-    router.post('/v3/conversations', (req, res) => { console.warn('/v3/conversations not implemented') })
+    router.post('/v3/conversations', (req, res) => { console.warn('/v3/conversations not implemented'); });
 
     router.post('/v3/conversations/:conversationId/activities', (req, res) => {
         let activity: IActivity;
@@ -127,7 +127,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
             // Conversation was never initialized
             res.status(400).send();
         }
-    })
+    });
 
     router.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
         let activity: IActivity;
@@ -136,7 +136,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         activity.id = uuidv4();
         activity.from = { id: 'id', name: 'Bot' };
 
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired)
+        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
         if (conversation) {
             conversation.history.push(activity);
             res.status(200).send();
@@ -144,7 +144,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
             // Conversation was never initialized
             res.status(400).send();
         }
-    })
+    });
 
     router.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/members not implemented'); });
     router.get('/v3/conversations/:conversationId/activities/:activityId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/activities/:activityId/members'); });
@@ -188,8 +188,13 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     return router;
 };
 
-// conversationInitRequired -> By default require that a conversation is initialized before it is accessed, returning a 400
-// when not the case. If set to false, a new conversation reference is created on the fly
+/**
+ * @param app The express app where your offline-directline endpoint will live
+ * @param port The port where your offline-directline will be hosted
+ * @param botUrl The url of the bot (e.g. http://127.0.0.1:3978/api/messages)
+ * @param conversationInitRequired Requires that a conversation is initialized before it is accessed, returning a 400
+ * when not the case. If set to false, a new conversation reference is created on the fly. This is true by default.
+ */
 export const initializeRoutes = (app: express.Express, port: number = 3000, botUrl: string, conversationInitRequired = true) => {
     conversationsCleanup();
 
@@ -209,7 +214,7 @@ const getConversation = (conversationId: string, conversationInitRequired: boole
     if (!conversations[conversationId] && !conversationInitRequired) {
         conversations[conversationId] = {
             conversationId,
-            history: []
+            history: [],
         };
     }
     return conversations[conversationId];
@@ -279,7 +284,7 @@ const createConversationUpdateActivity = (serviceUrl: string, conversationId: st
         id: uuidv4(),
         membersAdded: [],
         membersRemoved: [],
-        from: { id: 'offline-directline', name: 'Offline Directline Server' }
+        from: { id: 'offline-directline', name: 'Offline Directline Server' },
     };
     return activity;
 };
