@@ -282,7 +282,17 @@ const createConversationUpdateActivity = (serviceUrl: string, conversationId: st
         serviceUrl,
         conversation: { id: conversationId },
         id: uuidv4(),
-        membersAdded: [],
+        membersAdded: [{
+            id: "id",
+            name: "Bot"
+        }, {
+            id: uuidv4().toString(),
+            name: "User"
+        }],
+        recipient: {
+            id: "id",
+            name: "Bot"
+        },
         membersRemoved: [],
         from: { id: 'offline-directline', name: 'Offline Directline Server' },
     };
