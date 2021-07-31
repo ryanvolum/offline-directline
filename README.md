@@ -10,6 +10,12 @@ See [Bot Framework API Reference](https://docs.microsoft.com/en-us/bot-framework
 
 NOTE: Not all routes (e.g. attachments) are fully implemented in this package. For now this connector functions as a message broker and state store. Further, this package currently facilitates a single conversation between a user and a bot.
 
+## To launch the project locally
+
+```sh
+npm run build
+npm start
+```
 
 ## Installation
 
