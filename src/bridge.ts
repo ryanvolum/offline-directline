@@ -3,6 +3,7 @@ import * as express from 'express';
 import * as fetch from 'isomorphic-fetch';
 import * as moment from 'moment';
 import * as uuidv4 from 'uuid/v4';
+import { Server as WebSocketServer } from 'ws';
 
 import { IActivity, IBotData, IConversation, IConversationUpdateActivity, IMessageActivity } from './types';
 
@@ -10,6 +11,14 @@ const expiresIn = 1800;
 const conversationsCleanupInterval = 10000;
 const conversations: { [key: string]: IConversation } = {};
 const botDataStore: { [key: string]: IBotData } = {};
+
+function getWebsocketServer() {
+    const wss = new WebSocketServer({ noServer: true });
+    wss.on('connection', function connection(ws) {
+        ws.send('something');
+    });
+    return wss;
+}
 
 export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
     const router = express.Router();
@@ -33,6 +42,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         conversations[conversationId] = {
             conversationId,
             history: [],
+            webSocketServer: getWebsocketServer()
         };
         console.log('Created conversation with conversationId: ' + conversationId);
 
@@ -47,6 +57,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
             res.status(response.status).send({
                 conversationId,
                 expiresIn,
+                streamUrl: serviceUrl + "/directline/stream?id=" + conversationId
             });
         });
     });
@@ -202,10 +213,23 @@ export const initializeRoutes = (app: express.Express, port: number = 3000, botU
     const router = getRouter(directLineEndpoint, botUrl, conversationInitRequired);
 
     app.use(router);
-    app.listen(port, () => {
+    const server = app.listen(port, () => {
         console.log(`Listening for messages from client on ${directLineEndpoint}`);
         console.log(`Routing messages to bot on ${botUrl}`);
     });
+
+    server.on('upgrade', (request, socket, head) => {
+        const url = new URL(request.url, directLineEndpoint);
+        if (url.pathname === "/directline/stream") {
+            const conversation = getConversation(url.searchParams.get("id"), false);
+            conversation.webSocketServer.handleUpgrade(request, socket, head, function done(ws) {
+                conversation.webSocketServer.emit('connection', ws, request);
+            });
+        } else {
+            socket.destroy();
+        }
+    });
+
 };
 
 const getConversation = (conversationId: string, conversationInitRequired: boolean) => {
@@ -215,6 +239,7 @@ const getConversation = (conversationId: string, conversationInitRequired: boole
         conversations[conversationId] = {
             conversationId,
             history: [],
+            webSocketServer: getWebsocketServer()
         };
     }
     return conversations[conversationId];
