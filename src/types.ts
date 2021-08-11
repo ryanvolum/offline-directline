@@ -55,7 +55,8 @@ export interface IBotData {
 
 export interface IConversation {
     conversationId: string,
-    history?: IActivity[]
+    history?: IActivity[],
+    webSocketServer: any
 }
 
 export interface IConversationUpdateActivity extends IActivity {
