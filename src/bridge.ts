@@ -12,15 +12,61 @@ const conversationsCleanupInterval = 10000;
 const conversations: { [key: string]: IConversation } = {};
 const botDataStore: { [key: string]: IBotData } = {};
 
-function getWebsocketServer() {
+// Creates websocket server
+function getWebsocketServer(botUrl, serviceUrl, conversationId) {
     const wss = new WebSocketServer({ noServer: true });
     wss.on('connection', function connection(ws) {
-        ws.send('something');
+        ws.on('message', function incoming(message) {
+            const incomingActivity = JSON.parse(message);
+            // Make copy of activity. Add required fields
+            const activity = createMessageActivity(incomingActivity, serviceUrl, conversationId);
+            sendClientActivity(activity, conversationId, botUrl, () => { }, () => { });
+        });
     });
     return wss;
 }
 
-export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
+// Sends http post containing a client activity
+function sendClientActivity(activity, conversationId, botUrl, onSuccess, onFail) {
+    const conversation = getConversation(conversationId);
+
+    if (conversation) {
+        conversation.history.push(activity);
+        fetch(botUrl, {
+            method: 'POST',
+            body: JSON.stringify(activity),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then(onSuccess);
+        conversation.webSocketServer.clients.forEach(function each(client) {
+            client.send(JSON.stringify(activity));
+        });
+    } else {
+        // Conversation was never initialized
+        onFail();
+    }
+}
+
+// Sends bot activity to the client
+function sendBotActivity(activity: IActivity, conversationId, onSuccess, onFail) {
+    activity.id = uuidv4();
+    activity.from = { id: 'id', name: 'Bot' };
+
+    const conversation = getConversation(conversationId);
+    if (conversation) {
+        conversation.history.push(activity);
+        conversation.webSocketServer.clients.forEach(function each(client) {
+            client.send(JSON.stringify(activity));
+        });
+        onSuccess();
+    } else {
+        // Conversation was never initialized
+        onFail();
+    }
+}
+
+export const getRouter = (serviceUrl: string, botUrl: string): express.Router => {
     const router = express.Router();
 
     router.use(bodyParser.json()); // for parsing application/json
@@ -42,7 +88,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         conversations[conversationId] = {
             conversationId,
             history: [],
-            webSocketServer: getWebsocketServer()
+            webSocketServer: getWebsocketServer(botUrl, serviceUrl, conversationId)
         };
         console.log('Created conversation with conversationId: ' + conversationId);
 
@@ -69,7 +115,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     router.get('/directline/conversations/:conversationId/activities', (req, res) => {
         const watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
 
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
+        const conversation = getConversation(req.params.conversationId);
 
         if (conversation) {
             // If the bot has pushed anything into the history array
@@ -97,23 +143,11 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         // Make copy of activity. Add required fields
         const activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
 
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
-
-        if (conversation) {
-            conversation.history.push(activity);
-            fetch(botUrl, {
-                method: 'POST',
-                body: JSON.stringify(activity),
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }).then((response) => {
-                res.status(response.status).json({ id: activity.id });
-            });
-        } else {
-            // Conversation was never initialized
-            res.status(400).send();
-        }
+        sendClientActivity(activity, req.params.conversationId, botUrl, (response) => {
+            res.status(response.status).json({ id: activity.id })
+        }, () => {
+            res.status(400).send()
+        });
     });
 
     router.post('/v3/directline/conversations/:conversationId/upload', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/upload not implemented'); });
@@ -124,37 +158,11 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     router.post('/v3/conversations', (req, res) => { console.warn('/v3/conversations not implemented'); });
 
     router.post('/v3/conversations/:conversationId/activities', (req, res) => {
-        let activity: IActivity;
-
-        activity = req.body;
-        activity.id = uuidv4();
-        activity.from = { id: 'id', name: 'Bot' };
-
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
-        if (conversation) {
-            conversation.history.push(activity);
-            res.status(200).send();
-        } else {
-            // Conversation was never initialized
-            res.status(400).send();
-        }
+        sendBotActivity(req.body, req.params.conversationId, () => res.status(200).send(), () => res.status(400).send())
     });
 
     router.post('/v3/conversations/:conversationId/activities/:activityId', (req, res) => {
-        let activity: IActivity;
-
-        activity = req.body;
-        activity.id = uuidv4();
-        activity.from = { id: 'id', name: 'Bot' };
-
-        const conversation = getConversation(req.params.conversationId, conversationInitRequired);
-        if (conversation) {
-            conversation.history.push(activity);
-            res.status(200).send();
-        } else {
-            // Conversation was never initialized
-            res.status(400).send();
-        }
+        sendBotActivity(req.body, req.params.conversationId, () => res.status(200).send(), () => res.status(400).send())
     });
 
     router.get('/v3/conversations/:conversationId/members', (req, res) => { console.warn('/v3/conversations/:conversationId/members not implemented'); });
@@ -206,11 +214,11 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
  * @param conversationInitRequired Requires that a conversation is initialized before it is accessed, returning a 400
  * when not the case. If set to false, a new conversation reference is created on the fly. This is true by default.
  */
-export const initializeRoutes = (app: express.Express, port: number = 3000, botUrl: string, conversationInitRequired = true) => {
+export const initializeRoutes = (app: express.Express, port: number = 3000, botUrl: string) => {
     conversationsCleanup();
 
     const directLineEndpoint = `http://127.0.0.1:${port}`;
-    const router = getRouter(directLineEndpoint, botUrl, conversationInitRequired);
+    const router = getRouter(directLineEndpoint, botUrl);
 
     app.use(router);
     const server = app.listen(port, () => {
@@ -221,10 +229,12 @@ export const initializeRoutes = (app: express.Express, port: number = 3000, botU
     server.on('upgrade', (request, socket, head) => {
         const url = new URL(request.url, directLineEndpoint);
         if (url.pathname === "/directline/stream") {
-            const conversation = getConversation(url.searchParams.get("id"), false);
-            conversation.webSocketServer.handleUpgrade(request, socket, head, function done(ws) {
-                conversation.webSocketServer.emit('connection', ws, request);
-            });
+            const conversation = getConversation(url.searchParams.get("id"));
+            if (conversation) {
+                conversation.webSocketServer.handleUpgrade(request, socket, head, function done(ws) {
+                    conversation.webSocketServer.emit('connection', ws, request);
+                });
+            }
         } else {
             socket.destroy();
         }
@@ -232,16 +242,7 @@ export const initializeRoutes = (app: express.Express, port: number = 3000, botU
 
 };
 
-const getConversation = (conversationId: string, conversationInitRequired: boolean) => {
-
-    // Create conversation on the fly when needed and init not required
-    if (!conversations[conversationId] && !conversationInitRequired) {
-        conversations[conversationId] = {
-            conversationId,
-            history: [],
-            webSocketServer: getWebsocketServer()
-        };
-    }
+const getConversation = (conversationId: string) => {
     return conversations[conversationId];
 };
 
