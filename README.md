@@ -92,3 +92,7 @@ Offline directline doesn't require a token or secret, so don't worry about these
 
 
 Once everything is running, you should see messages sent in through webchat passed through to your bot and vice versa. Your bot should also be able to set privateConversationData, conversationData and userData as offered by the botbuilder SDKs.
+
+### PPIBot flow
+
+![botflow drawio](https://user-images.githubusercontent.com/55922195/137048508-772618e2-fe04-4dfe-9354-8c9e5111b1e0.png)
