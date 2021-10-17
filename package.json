@@ -20,6 +20,7 @@
     "url": "https://github.com/ryanvolum/offline_dl"
   },
   "dependencies": {
+    "axios": "^0.23.0",
     "body-parser": "^1.17.2",
     "commander": "^2.17.1",
     "es6-promise": "^4.1.1",
