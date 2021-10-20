@@ -93,14 +93,14 @@ Offline directline doesn't require a token or secret, so don't worry about these
 
 Once everything is running, you should see messages sent in through webchat passed through to your bot and vice versa. Your bot should also be able to set privateConversationData, conversationData and userData as offered by the botbuilder SDKs.
 
-## PPIBot flow
-![botflow-Page-1 drawio](https://user-images.githubusercontent.com/62081471/137207168-053988a4-1974-48bb-a151-d71b982bbbea.png)
+## PPIBot 
+![conversation_creation](https://user-images.githubusercontent.com/62081471/138134997-0e414212-3731-4276-8962-59df9103c54a.png)
+
 
 #### Stages
 
 1. First, the user requests the web page. Once the web page is loaded, the frontend sends a request to the
-offline-directline server in order to start a conversation with the bot. Offline-directline server forwards the
-request to the bot in a convenient way. The bot will answer with a ConversationInformation object containing
+offline-directline server in order to start a conversation with the bot. Offline-directline server will tell the bot that a new conversation has been created. The bot can now send a welcome message. Offline-directline will answer with a ConversationInformation object containing
 the required data to start sending and receiving information to the new channel, such as the conversation ID
 and the WebSocket server address where the messages will be received from.
 
