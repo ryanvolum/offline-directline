@@ -113,8 +113,8 @@ received by the WebSocket connection. In this way, no messages remain unread by 
 the bot sends a welcome message just after the connection is created.
 
 * * *
+![sendingandreceiving](https://user-images.githubusercontent.com/62081471/138124928-2dba9011-91e0-469f-a5ef-a7c4bdbedb9d.png)
 
-![sendingandreceiving drawio](https://user-images.githubusercontent.com/62081471/137521293-8ddf266c-1120-43fd-a1e8-67b9fa064078.png)
 
 #### Stages
 
@@ -122,9 +122,13 @@ the bot sends a welcome message just after the connection is created.
 
 2. Offline-directline receives the message from the frontend and forwards it to the bot using Bot Connector API.
 
-3. The bot listens to the incoming activity from offline-directline. Eventually, it will answer back using Bot Connector API.
+3. The bot registers the incoming activity, assigns it an ID and returns the ID back to offline-directline.
 
-4. Now the offline-directline server receives the answer and it saves it in the conversation history, waiting for the frontend to retrieve it using Direct Line API 3.0. Offline-directline will also broadcast the activity through the corresponding WebSocket server so everybody in the conversation can listen to it instantly.
+4. Offline-directline sends the ID back to the frontend, so it knows the activity has been registered by the bot.
+
+5. Eventually, the bot will compute an answer and it will send it using Bot Connector API.
+
+6. Now the offline-directline server receives the answer and it saves it in the conversation history, waiting for the frontend to retrieve it using Direct Line API 3.0. Offline-directline will also broadcast the activity through the corresponding WebSocket server so everybody in the conversation can listen to it instantly.
 
 
 
