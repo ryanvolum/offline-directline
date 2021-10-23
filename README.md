@@ -94,7 +94,7 @@ Offline directline doesn't require a token or secret, so don't worry about these
 Once everything is running, you should see messages sent in through webchat passed through to your bot and vice versa. Your bot should also be able to set privateConversationData, conversationData and userData as offered by the botbuilder SDKs.
 
 ## PPIBot 
-![conversation_creation](https://user-images.githubusercontent.com/62081471/138134997-0e414212-3731-4276-8962-59df9103c54a.png)
+![conversation_creation](https://user-images.githubusercontent.com/62081471/138552358-5e02b50e-252a-44e6-ab0d-e8ac4fba229f.png)
 
 
 #### Stages
@@ -113,7 +113,7 @@ received by the WebSocket connection. In this way, no messages remain unread by 
 the bot sends a welcome message just after the connection is created.
 
 * * *
-![sendingandreceiving](https://user-images.githubusercontent.com/62081471/138124928-2dba9011-91e0-469f-a5ef-a7c4bdbedb9d.png)
+![sendingandreceiving](https://user-images.githubusercontent.com/62081471/138552394-df46ceb1-5155-4e43-8901-2fba6e6aa32e.png)
 
 
 #### Stages
