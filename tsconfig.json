@@ -9,6 +9,7 @@
     },
     "files": [
         "src/bridge.ts",
-        "src/cmdutil.ts"
+        "src/cmdutil.ts",
+        "src/store.ts"
     ]
 }

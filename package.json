@@ -9,7 +9,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "nodewatch": "nodemon index.js",
-    "start": "node samples/index.js",
+    "start": "npm run directline",
     "directline": "node dist/cmdutil.js"
   },
   "types": "dist/bridge.d.ts",
@@ -26,6 +26,7 @@
     "express": "4.16.3",
     "isomorphic-fetch": "2.2.1",
     "moment": "2.22.2",
+    "redis": "^4.0.1",
     "tslint": "^5.11.0",
     "uuid": "^3.1.0",
     "ws": "^8.0.0"
