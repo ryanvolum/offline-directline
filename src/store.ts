@@ -76,10 +76,15 @@ export class RedisStore implements IStore {
     return this.client.hDel("botData", key);
   }
   async start() {
-    return this.client.connect().catch((reason) => {
-      console.log("Could not connect to Redis server. Reason: ", reason);
-      throw new Error(reason);
-    });
+    return this.client
+      .connect()
+      .then(() => {
+        console.log("Connection with Redis server established.");
+      })
+      .catch((reason) => {
+        console.log("Could not connect to Redis server. Reason: ", reason);
+        throw new Error(reason);
+      });
   }
   async setBotData(key, botData) {
     return this.client.hSet("botData", key, JSON.stringify(botData));
